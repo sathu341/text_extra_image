@@ -1,0 +1,57 @@
+{% static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Capture</title>
+</head>
+<body>
+
+<h1>Webcam Capture</h1>
+
+<video id="video" width="640" height="480" autoplay></video>
+<button id="captureBtn">Capture Image</button>
+<canvas id="canvas" width="640" height="480"></canvas>
+
+<script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureBtn = document.getElementById('captureBtn');
+    const context = canvas.getContext('2d');
+
+    // Get user media
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then((stream) => {
+            video.srcObject = stream;
+        })
+        .catch((error) => {
+            console.error('Error accessing webcam:', error);
+        });
+
+    // Capture image
+    captureBtn.addEventListener('click', () => {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageDataURL = canvas.toDataURL('image/png');
+
+        // Send captured image data to the server
+        fetch('/capture/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',  // Include CSRF token
+            },
+            body: JSON.stringify({ image_data: imageDataURL }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Image captured and sent to server:', data);
+        })
+        .catch(error => {
+            console.error('Error sending image to server:', error);
+        });
+    });
+</script>
+
+</body>
+</html>
